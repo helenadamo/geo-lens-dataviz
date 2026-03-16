@@ -15,10 +15,10 @@ currently using **traffic accidents in Porto Alegre, Brazil**.
 
 ## stack
 
-- React & Vite
-- Leaflet
-- Raw SVG (for custom radial charts)
-- Turf.js & Fast Native Math Approximations
+- react & vite
+- leaflet
+- raw svg (for custom radial charts)
+- turf.js & fast native math approximations
 
 ## run locally
 
@@ -28,4 +28,3 @@ cd geo-lens-dataviz
 npm install
 npm run dev
 ```
-Open `http://localhost:5173`
