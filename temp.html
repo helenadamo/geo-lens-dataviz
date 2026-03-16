@@ -1,0 +1,808 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lens Dataviz GeoJSON Viewer — Improved</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    :root{
+      --bg:#f5f4f0;
+      --card:rgba(255,255,255,.90);
+      --stroke:rgba(22,28,36,.11);
+      --text:#1c1f26;
+      --muted:#667085;
+      --shadow:0 10px 30px rgba(18,23,36,.14);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      overflow:hidden;
+    }
+    #app,#map{height:100%;width:100%}
+    #app{position:relative}
+
+    .panel{
+      position:absolute;
+      top:16px;
+      left:16px;
+      width:min(540px, calc(100vw - 32px));
+      z-index:1000;
+      background:var(--card);
+      backdrop-filter:blur(16px);
+      border:1px solid var(--stroke);
+      border-radius:30px;
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+    .title{
+      margin:0;
+      font-size:clamp(28px,3vw,44px);
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-.05em;
+    }
+    .subtitle{
+      margin:8px 0 0;
+      font-size:14px;
+      line-height:1.45;
+      color:var(--muted);
+      max-width:92%;
+    }
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:14px;
+      align-items:center;
+    }
+    .btn,.uploadLabel{
+      border:1px solid var(--stroke);
+      background:#fff;
+      border-radius:16px;
+      padding:10px 13px;
+      cursor:pointer;
+      font-size:13px;
+      color:var(--text);
+      box-shadow:0 3px 10px rgba(16,24,40,.04);
+      transition:.18s ease;
+    }
+    .btn:hover,.uploadLabel:hover{transform:translateY(-1px)}
+    .uploadLabel input{display:none}
+
+    .rangeWrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      border:1px solid var(--stroke);
+      background:#fff;
+      border-radius:16px;
+      padding:8px 12px;
+      min-width:300px;
+    }
+    .rangeWrap label{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .rangeWrap input{width:120px}
+    .radiusValue{
+      margin-left:auto;
+      font-size:12px;
+      font-weight:800;
+      min-width:58px;
+      text-align:right;
+    }
+
+    .summaryGrid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0,1fr));
+      gap:10px;
+      margin-top:14px;
+    }
+    .stat{
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(249,250,251,.95));
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      padding:12px 12px 10px;
+      min-height:86px;
+      box-shadow:0 6px 18px rgba(16,24,40,.05);
+    }
+    .stat .k{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:10px;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    .stat .v{
+      font-size:28px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-.04em;
+    }
+    .stat .s{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.25;
+    }
+
+    .rows{
+      display:grid;
+      grid-template-columns:1.4fr 1fr;
+      gap:12px;
+      margin-top:12px;
+    }
+    .listCard{
+      border:1px solid var(--stroke);
+      background:#fff;
+      border-radius:20px;
+      padding:12px;
+      min-height:168px;
+    }
+    .listCard h3{
+      margin:0 0 10px;
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:.02em;
+      text-transform:uppercase;
+      color:#344054;
+    }
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .row{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:10px;
+      align-items:center;
+      font-size:13px;
+    }
+    .dot{
+      width:10px;height:10px;border-radius:999px;
+      box-shadow:0 2px 6px rgba(0,0,0,.12);
+    }
+    .name{
+      min-width:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      color:#101828;
+      font-weight:600;
+    }
+    .value{
+      color:#344054;
+      font-weight:800;
+      font-variant-numeric:tabular-nums;
+    }
+    .barTrack{
+      grid-column:2 / 4;
+      height:7px;
+      border-radius:999px;
+      background:#f2f4f7;
+      overflow:hidden;
+      margin-top:-2px;
+    }
+    .barFill{
+      height:100%;
+      border-radius:999px;
+      width:0%;
+    }
+
+    .status{
+      position:absolute;
+      right:16px;
+      bottom:16px;
+      z-index:1000;
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(12px);
+      border:1px solid var(--stroke);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+      font-size:12px;
+      color:var(--muted);
+      max-width:min(420px, calc(100vw - 32px));
+    }
+
+    .lensHud{
+      position:absolute;
+      left:50%;
+      bottom:20px;
+      transform:translateX(-50%);
+      z-index:1000;
+      min-width:250px;
+      padding:12px 16px;
+      text-align:center;
+      pointer-events:none;
+      background:rgba(255,255,255,.92);
+      backdrop-filter:blur(14px);
+      border:1px solid var(--stroke);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+    }
+    .lensHud .big{
+      font-size:30px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-.05em;
+      color:#101828;
+    }
+    .lensHud .small{
+      margin-top:4px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .leaflet-control-attribution{
+      background:rgba(255,255,255,.7)!important;
+      backdrop-filter:blur(5px);
+      border-top-left-radius:12px;
+    }
+    .custom-popup .leaflet-popup-content-wrapper{
+      border-radius:16px;
+      box-shadow:var(--shadow);
+    }
+    @media (max-width:920px){
+      .summaryGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .rows{grid-template-columns:1fr}
+    }
+    @media (max-width:640px){
+      .panel{padding:14px;border-radius:24px}
+      .title{font-size:28px}
+      .rangeWrap{min-width:100%}
+      .summaryGrid{grid-template-columns:1fr 1fr}
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+
+  <div class="panel">
+    <h1 class="title">GeoJSON Lens Dataviz</h1>
+    <p class="subtitle">Only points inside the lens stay visible. The radial chart now uses a real category field from the dataset — by default, accident type (“tipo”).</p>
+
+    <div class="toolbar">
+      <label class="uploadLabel">
+        Upload GeoJSON
+        <input type="file" id="fileInput" accept=".geojson,.json,application/geo+json,application/json" />
+      </label>
+      <button class="btn" id="fitBtn">Fit data</button>
+      <button class="btn" id="sampleBtn">Load sample</button>
+      <button class="btn" id="followBtn">Mode: click to place</button>
+
+      <div class="rangeWrap">
+        <label for="radiusRange">Focus radius</label>
+        <input id="radiusRange" type="range" min="150" max="3000" step="25" value="300" />
+        <div class="radiusValue" id="radiusValue">300 m</div>
+      </div>
+    </div>
+
+    <div class="summaryGrid">
+      <div class="stat">
+        <div class="k">Inside lens</div>
+        <div class="v" id="statTotal">0</div>
+        <div class="s">visible points</div>
+      </div>
+      <div class="stat">
+        <div class="k">Top type</div>
+        <div class="v" id="statTopType">—</div>
+        <div class="s" id="statTopTypeSub">no data</div>
+      </div>
+      <div class="stat">
+        <div class="k">Feridos</div>
+        <div class="v" id="statFeridos">0</div>
+        <div class="s">sum inside lens</div>
+      </div>
+      <div class="stat">
+        <div class="k">Mortes</div>
+        <div class="v" id="statMortes">0</div>
+        <div class="s">sum inside lens</div>
+      </div>
+    </div>
+
+    <div class="rows">
+      <div class="listCard">
+        <h3>Top categories inside lens</h3>
+        <div class="list" id="categoryList"></div>
+      </div>
+      <div class="listCard">
+        <h3>Other breakdowns</h3>
+        <div class="list" id="metaList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lensHud">
+    <div class="big" id="totalInside">0</div>
+    <div class="small" id="totalLabel">points inside lens</div>
+  </div>
+
+  <div class="status" id="status">Open this HTML directly, upload your GeoJSON, and click on the map to move the lens.</div>
+</div>
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
+<script>
+(() => {
+  const map = L.map('map', { zoomControl:false, preferCanvas:true }).setView([-30.0346,-51.2177], 13);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution:'&copy; OpenStreetMap &copy; CARTO'
+  }).addTo(map);
+
+  let featureGroup = L.featureGroup().addTo(map);
+  let allFeatures = [];
+  let lensLatLng = map.getCenter();
+  let focusRadius = 300;
+  let followMode = false;
+  let lensCircle = null;
+  let radialSvg = null;
+  let centerDot = null;
+
+  const palette = ['#C45A3C','#E28B74','#F1B49E','#79C35C','#48A55B','#798197','#495069'];
+  const fileInput = document.getElementById('fileInput');
+  const radiusRange = document.getElementById('radiusRange');
+  const radiusValue = document.getElementById('radiusValue');
+  const totalInside = document.getElementById('totalInside');
+  const totalLabel = document.getElementById('totalLabel');
+  const status = document.getElementById('status');
+  const followBtn = document.getElementById('followBtn');
+  const categoryList = document.getElementById('categoryList');
+  const metaList = document.getElementById('metaList');
+  const statTotal = document.getElementById('statTotal');
+  const statTopType = document.getElementById('statTopType');
+  const statTopTypeSub = document.getElementById('statTopTypeSub');
+  const statFeridos = document.getElementById('statFeridos');
+  const statMortes = document.getElementById('statMortes');
+
+  function setStatus(msg){ status.textContent = msg; }
+
+  function prettyLabel(str){
+    if (!str && str !== 0) return 'Unknown';
+    const s = String(str).replace(/[_-]+/g,' ').trim();
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  }
+
+  function inferMainCategory(props = {}) {
+    const preferred = ['tipo', 'tipo_acid', 'category', 'type', 'classe', 'class', 'subtype', 'grupo', 'natureza', 'kind', 'amenity', 'incident', 'label'];
+    for (const key of preferred) {
+      if (props[key] !== undefined && props[key] !== null && String(props[key]).trim() !== '') {
+        return prettyLabel(props[key]);
+      }
+    }
+    return 'Points';
+  }
+
+  function getNum(props, keys){
+    for (const key of keys){
+      const val = props[key];
+      if (val !== undefined && val !== null && val !== '' && !Number.isNaN(Number(val))) {
+        return Number(val);
+      }
+    }
+    return 0;
+  }
+
+  function isPointFeature(f){
+    return f && f.geometry && f.geometry.type === 'Point' &&
+      Array.isArray(f.geometry.coordinates) &&
+      f.geometry.coordinates.length >= 2 &&
+      isFinite(f.geometry.coordinates[0]) && isFinite(f.geometry.coordinates[1]);
+  }
+
+  function colorFor(name, idxHint=0){
+    const mapColors = {
+      'Abalroamento':'#C45A3C',
+      'Atropelamento':'#495069',
+      'Choque':'#79C35C',
+      'Colisao':'#48A55B',
+      'Capotagem':'#E28B74',
+      'Tombamento':'#F1B49E'
+    };
+    return mapColors[name] || palette[idxHint % palette.length];
+  }
+
+  function updateRadiusLabel(){
+    radiusValue.textContent = focusRadius >= 1000
+      ? (focusRadius/1000).toFixed(focusRadius % 1000 === 0 ? 0 : 1) + ' km'
+      : focusRadius + ' m';
+  }
+
+  function parseTextAsGeoJSON(text){
+    const parsed = JSON.parse(text);
+    if (parsed.type === 'FeatureCollection') return parsed;
+    if (parsed.type === 'Feature') return { type:'FeatureCollection', features:[parsed] };
+    if (Array.isArray(parsed)) return { type:'FeatureCollection', features:parsed };
+    throw new Error('Unsupported JSON format.');
+  }
+
+  function renderData(geojson, sourceLabel='GeoJSON'){
+    featureGroup.clearLayers();
+    allFeatures = [];
+    categoryList.innerHTML = '';
+    metaList.innerHTML = '';
+
+    const raw = (geojson.features || []).filter(isPointFeature);
+    if (!raw.length){
+      setStatus('No valid Point features found in this file.');
+      return;
+    }
+
+    const categoryIndex = new Map();
+    raw.forEach((f, idx) => {
+      const props = f.properties || {};
+      const cat = inferMainCategory(props);
+      if (!categoryIndex.has(cat)) categoryIndex.set(cat, categoryIndex.size);
+      const feature = {
+        ...f,
+        properties: {
+          ...props,
+          __category: cat
+        },
+        __color: colorFor(cat, categoryIndex.get(cat))
+      };
+
+      const [lng, lat] = f.geometry.coordinates;
+      const marker = L.circleMarker([lat, lng], {
+        radius: 0,
+        color: 'rgba(255,255,255,0)',
+        weight: 0,
+        fillColor: feature.__color,
+        fillOpacity: 0,
+        opacity: 0
+      });
+
+      const propEntries = Object.entries(props).slice(0, 10);
+      marker.bindPopup(
+        '<div style="min-width:170px"><div style="font-weight:800;margin-bottom:6px">' + cat + '</div>' +
+        (propEntries.length ? propEntries.map(([k,v]) => '<div style="font-size:12px;line-height:1.35"><b>' + k + '</b>: ' + String(v) + '</div>').join('') : '<div style="font-size:12px;color:#667085">No properties</div>') +
+        '</div>',
+        { className:'custom-popup' }
+      );
+
+      feature.__marker = marker;
+      featureGroup.addLayer(marker);
+      allFeatures.push(feature);
+    });
+
+    const bounds = featureGroup.getBounds();
+    if (bounds.isValid()){
+      map.fitBounds(bounds.pad(0.12));
+      lensLatLng = bounds.getCenter();
+    }
+
+    drawLens();
+    updateAnalysis();
+    setStatus(raw.length + ' points loaded from ' + sourceLabel + '.');
+  }
+
+  function drawLens(){
+    if (lensCircle) lensCircle.remove();
+    if (centerDot) centerDot.remove();
+    if (radialSvg) radialSvg.remove();
+
+    lensCircle = L.circle(lensLatLng, {
+      radius: focusRadius,
+      color:'#1f2937',
+      weight:2,
+      opacity:.55,
+      fillColor:'#ffffff',
+      fillOpacity:.05,
+      dashArray:'7 8'
+    }).addTo(map);
+
+    centerDot = L.circleMarker(lensLatLng, {
+      radius:5,
+      color:'#111827',
+      fillColor:'#111827',
+      fillOpacity:1,
+      weight:0
+    }).addTo(map);
+
+    radialSvg = L.svg({ clickable:false }).addTo(map);
+  }
+
+  function getInsideFeatures(){
+    return allFeatures.filter(f => {
+      const [lng, lat] = f.geometry.coordinates;
+      return map.distance(lensLatLng, L.latLng(lat, lng)) <= focusRadius;
+    });
+  }
+
+  function aggregateBy(list, getter){
+    const m = new Map();
+    list.forEach(item => {
+      const key = getter(item);
+      m.set(key, (m.get(key) || 0) + 1);
+    });
+    return [...m.entries()].map(([name, value]) => ({name, value})).sort((a,b)=>b.value-a.value);
+  }
+
+  function renderList(el, items, colorFn){
+    el.innerHTML = '';
+    if (!items.length){
+      el.innerHTML = '<div style="font-size:13px;color:#667085">No data inside the lens.</div>';
+      return;
+    }
+    const max = Math.max(...items.map(d => d.value), 1);
+    items.forEach((d, i) => {
+      const color = colorFn ? colorFn(d, i) : palette[i % palette.length];
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = `
+        <div class="dot" style="background:${color}"></div>
+        <div class="name" title="${d.name}">${d.name}</div>
+        <div class="value">${d.value}</div>
+        <div class="barTrack"><div class="barFill" style="background:${color};width:${(d.value/max)*100}%"></div></div>
+      `;
+      el.appendChild(row);
+    });
+  }
+
+  function updateAnalysis(){
+    if (!radialSvg) drawLens();
+
+    const inside = getInsideFeatures();
+    const grouped = aggregateBy(inside, f => f.properties.__category).slice(0, 6);
+    const groupedMap = new Map(grouped.map(g => [g.name, g.value]));
+
+    allFeatures.forEach(f => {
+      const [lng, lat] = f.geometry.coordinates;
+      const active = map.distance(lensLatLng, L.latLng(lat, lng)) <= focusRadius;
+      f.__marker.setStyle({
+        radius: active ? 4.8 : 0,
+        fillOpacity: active ? 0.62 : 0,
+        opacity: active ? 0.9 : 0,
+        color: active ? '#ffffff' : 'rgba(255,255,255,0)',
+        weight: active ? 1 : 0
+      });
+    });
+
+    const feridos = inside.reduce((s, f) => s + getNum(f.properties, ['feridos', 'injured']), 0);
+    const mortes = inside.reduce((s, f) => s + getNum(f.properties, ['mortes', 'deaths']), 0);
+    const top = grouped[0];
+
+    statTotal.textContent = inside.length;
+    statFeridos.textContent = feridos;
+    statMortes.textContent = mortes;
+    statTopType.textContent = top ? String(top.value) : '—';
+    statTopTypeSub.textContent = top ? top.name : 'no data';
+    totalInside.textContent = inside.length;
+    totalLabel.textContent = 'points inside ' + (focusRadius >= 1000 ? (focusRadius/1000).toFixed(1)+' km' : focusRadius+' m') + ' radius';
+
+    renderList(categoryList, grouped, (d, i) => {
+      const f = inside.find(x => x.properties.__category === d.name);
+      return f ? f.__color : palette[i % palette.length];
+    });
+
+    const byNight = aggregateBy(inside, f => prettyLabel(f.properties.noite_dia || 'Unknown')).slice(0, 3);
+    const byRegion = aggregateBy(inside, f => prettyLabel(f.properties.regiao || 'Unknown')).slice(0, 3);
+    const metaItems = [];
+    byNight.forEach(d => metaItems.push({ name: 'Day/Night — ' + d.name, value: d.value }));
+    byRegion.forEach(d => metaItems.push({ name: 'Region — ' + d.name, value: d.value }));
+    renderList(metaList, metaItems.slice(0,6), (d, i) => i < byNight.length ? '#98A2B3' : '#D0D5DD');
+
+    drawRadial(grouped);
+  }
+
+  function polarPoint(cx, cy, r, angleDeg){
+    const a = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  }
+  function arcPath(cx, cy, r, startDeg, endDeg){
+    const p1 = polarPoint(cx, cy, r, startDeg);
+    const p2 = polarPoint(cx, cy, r, endDeg);
+    const delta = ((endDeg - startDeg) % 360 + 360) % 360;
+    const large = delta > 180 ? 1 : 0;
+    return `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  function linePath(x1,y1,x2,y2){
+    return `M ${x1.toFixed(2)} ${y1.toFixed(2)} L ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  }
+  function svgText(x, y, text, size, weight, fill, anchor){
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', x);
+    t.setAttribute('y', y);
+    t.setAttribute('font-size', size);
+    t.setAttribute('font-weight', weight);
+    t.setAttribute('fill', fill);
+    t.setAttribute('text-anchor', anchor || 'start');
+    t.setAttribute('font-family', 'Inter, system-ui, sans-serif');
+    t.textContent = text;
+    return t;
+  }
+  function truncate(str, n){
+    return str.length > n ? str.slice(0, n - 1) + '…' : str;
+  }
+  function metersToPixelsApprox(meters, latlng){
+    const p1 = map.latLngToContainerPoint(latlng);
+    const p2 = map.latLngToContainerPoint(L.latLng(latlng.lat, latlng.lng + 0.01));
+    const metersForDelta = map.distance(latlng, L.latLng(latlng.lat, latlng.lng + 0.01));
+    const pxForDelta = Math.abs(p2.x - p1.x) || 1;
+    return meters * (pxForDelta / metersForDelta);
+  }
+  function offsetLatLng(origin, meters){
+    const p = map.latLngToLayerPoint(origin);
+    const p2 = L.point(p.x + metersToPixelsApprox(meters, origin), p.y);
+    return map.layerPointToLatLng(p2);
+  }
+
+  function drawRadial(groups){
+    const svgRoot = radialSvg && radialSvg._container;
+    if (!svgRoot) return;
+    svgRoot.innerHTML = '';
+    svgRoot.setAttribute('pointer-events', 'none');
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    svgRoot.appendChild(g);
+
+    const center = map.latLngToLayerPoint(lensLatLng);
+    const baseR = Math.max(40, map.latLngToLayerPoint(offsetLatLng(lensLatLng, focusRadius)).distanceTo(center));
+    const innerR = Math.max(36, baseR - 34);
+    const maxVal = Math.max(1, ...groups.map(d => d.value), 1);
+
+    const outerSoft = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    outerSoft.setAttribute('cx', center.x);
+    outerSoft.setAttribute('cy', center.y);
+    outerSoft.setAttribute('r', innerR);
+    outerSoft.setAttribute('fill', 'rgba(255,255,255,.72)');
+    outerSoft.setAttribute('stroke', 'rgba(17,24,39,.10)');
+    outerSoft.setAttribute('stroke-width', '1.5');
+    g.appendChild(outerSoft);
+
+    if (!groups.length){
+      g.appendChild(svgText(center.x, center.y - 4, '0', 28, 900, '#111827', 'middle'));
+      g.appendChild(svgText(center.x, center.y + 15, 'inside lens', 11, 600, '#667085', 'middle'));
+      return;
+    }
+
+    const slot = 360 / groups.length;
+    const gap = Math.min(10, slot * .22);
+
+    groups.forEach((d, i) => {
+      const start = i * slot + gap/2;
+      const end = (i + 1) * slot - gap/2;
+      const mid = (start + end) / 2;
+      const len = 38 + ((d.value / maxVal) * 88);
+      const color = colorFor(d.name, i);
+
+      const guide = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      guide.setAttribute('d', arcPath(center.x, center.y, innerR + 18, start, end));
+      guide.setAttribute('stroke', 'rgba(107,114,128,.16)');
+      guide.setAttribute('stroke-width', '10');
+      guide.setAttribute('stroke-linecap', 'round');
+      guide.setAttribute('fill', 'none');
+      g.appendChild(guide);
+
+      const bar = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      bar.setAttribute('d', arcPath(center.x, center.y, innerR + len, start, end));
+      bar.setAttribute('stroke', color);
+      bar.setAttribute('stroke-width', '11');
+      bar.setAttribute('stroke-linecap', 'round');
+      bar.setAttribute('fill', 'none');
+      g.appendChild(bar);
+
+      const tickStart = polarPoint(center.x, center.y, innerR + len + 8, mid);
+      const tickEnd = polarPoint(center.x, center.y, innerR + len + 24, mid);
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      tick.setAttribute('d', linePath(tickStart.x, tickStart.y, tickEnd.x, tickEnd.y));
+      tick.setAttribute('stroke', 'rgba(17,24,39,.34)');
+      tick.setAttribute('stroke-width', '1.3');
+      tick.setAttribute('stroke-linecap', 'round');
+      tick.setAttribute('fill', 'none');
+      g.appendChild(tick);
+
+      const vPos = polarPoint(center.x, center.y, innerR + len + 34, mid);
+      const lPos = polarPoint(center.x, center.y, innerR + len + 50, mid);
+      const anchor = (mid > 180) ? 'end' : 'start';
+
+      g.appendChild(svgText(vPos.x, vPos.y, String(d.value), 12, 900, '#111827', anchor));
+      g.appendChild(svgText(lPos.x, lPos.y, truncate(d.name, 16), 10, 600, '#667085', anchor));
+    });
+
+    g.appendChild(svgText(center.x, center.y - 7, document.getElementById('totalInside').textContent, 30, 900, '#111827', 'middle'));
+    g.appendChild(svgText(center.x, center.y + 15, 'inside lens', 11, 600, '#667085', 'middle'));
+  }
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try{
+      const text = await file.text();
+      renderData(parseTextAsGeoJSON(text), file.name);
+    }catch(err){
+      console.error(err);
+      setStatus('Could not read this file. Upload a valid GeoJSON with Point features.');
+    }
+  });
+
+  radiusRange.addEventListener('input', () => {
+    focusRadius = Number(radiusRange.value);
+    updateRadiusLabel();
+    drawLens();
+    updateAnalysis();
+  });
+
+  document.getElementById('followBtn').addEventListener('click', () => {
+    followMode = !followMode;
+    followBtn.textContent = followMode ? 'Mode: follow mouse' : 'Mode: click to place';
+    followBtn.style.background = followMode ? '#111827' : '#fff';
+    followBtn.style.color = followMode ? '#fff' : '#1c1f26';
+  });
+
+  document.getElementById('fitBtn').addEventListener('click', () => {
+    const bounds = featureGroup.getBounds();
+    if (bounds.isValid()) map.fitBounds(bounds.pad(0.12));
+  });
+
+  document.getElementById('sampleBtn').addEventListener('click', () => {
+    renderData(makeSampleData(), 'sample data');
+  });
+
+  map.on('click', (e) => {
+    lensLatLng = e.latlng;
+    drawLens();
+    updateAnalysis();
+  });
+
+  map.on('mousemove', (e) => {
+    if (!followMode) return;
+    lensLatLng = e.latlng;
+    drawLens();
+    updateAnalysis();
+  });
+
+  map.on('zoomend moveend resize', () => {
+    if (radialSvg || lensCircle){
+      drawLens();
+      updateAnalysis();
+    }
+  });
+
+  function makeSampleData(){
+    const center = [-51.2177, -30.0346];
+    const categories = ['Abalroamento','Atropelamento','Choque','Colisao','Capotagem'];
+    const features = [];
+    for (let i = 0; i < 220; i++){
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 0.004 + Math.random() * 0.05;
+      const lng = center[0] + Math.cos(angle) * dist * (1 + Math.random() * 0.5);
+      const lat = center[1] + Math.sin(angle) * dist * (0.8 + Math.random() * 0.7);
+      features.push({
+        type:'Feature',
+        geometry:{ type:'Point', coordinates:[lng, lat] },
+        properties:{
+          tipo: categories[Math.floor(Math.random() * categories.length)],
+          feridos: Math.random() > 0.7 ? 1 : 0,
+          mortes: Math.random() > 0.97 ? 1 : 0,
+          noite_dia: Math.random() > 0.55 ? 'DIA' : 'NOITE',
+          regiao: ['CENTRO','LESTE','SUL','NORTE'][Math.floor(Math.random()*4)]
+        }
+      });
+    }
+    return { type:'FeatureCollection', features };
+  }
+
+  updateRadiusLabel();
+  renderData(makeSampleData(), 'sample data');
+})();
+</script>
+</body>
+</html>
