@@ -1,14 +1,14 @@
-# GeoJSON Lens Dataviz
-*a small personal experiment in spatial data visualization *
+# geoJSON lens dataviz
+a small personal experiment in spatial data visualization 
 
 ![Lens dataviz preview](src/assets/github.png)
 
 
-**EN:** an interactive lens for micro-scale spatial data analysis. Drag the lens across the map to aggregate data in real-time through a custom SVG radial chart.
+an interactive lens for micro-scale spatial data analysis. Drag the lens across the map to aggregate data in real-time through a custom SVG radial chart.
 
 ## dataset
 
-Currently using **traffic accidents in Porto Alegre, Brazil**.
+currently using **traffic accidents in Porto Alegre, Brazil**.
 *(acidentes de trânsito em Porto Alegre/RS)*
 
 **source** [Prefeitura de Porto Alegre – Dados Abertos (EPTC)](https://dadosabertos.poa.br/dataset/acidentes-de-transito)
