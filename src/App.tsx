@@ -94,24 +94,7 @@ export default function App() {
         onCategoryDrop={handleCategoryDrop}
       />
 
-      <div style={{
-        position: 'absolute',
-        top: 24,
-        left: 24,
-        right: 24,
-        zIndex: 1000,
-        pointerEvents: 'none',
-        background: '#111111',
-        padding: '20px 32px',
-        borderRadius: '40px 40px 40px 12px',
-        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-        border: '1px solid #222',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 24,
-        overflow: 'visible',
-        fontFamily: "'Metrophobic', sans-serif"
-      }}>
+      <div className="top-bar">
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
           <h1 style={{ 
             fontSize: 24, 
@@ -136,16 +119,17 @@ export default function App() {
           </p>
         </div>
 
-        <div style={{ width: '2px', height: '40px', background: '#333', flexShrink: 0 }} />
+        <div className="top-bar-separator" style={{ width: '2px', height: '40px', background: '#333', flexShrink: 0 }} />
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div style={{ display: 'flex', gap: 12, pointerEvents: 'auto', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', overflow: 'hidden' }}>
+          <div className="category-list">
             {Object.entries(CATEGORY_ICONS).map(([cat, icon]) => {
             const color = CATEGORY_COLORS[cat] || '#ffffff';
             const isSelected = selectedCategories.includes(cat);
             return (
               <div 
                 key={cat}
+                className="category-chip"
                 draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData('application/category', cat);
@@ -186,12 +170,12 @@ export default function App() {
             );
           })}
           </div>
-          <span style={{ fontSize: 11, color: '#666', fontWeight: 600, paddingLeft: 8 }}>
+          <span className="top-bar-separator mobile-hide" style={{ fontSize: 11, color: '#666', fontWeight: 600, paddingLeft: 8 }}>
             Arraste e solte no mapa · Ou clique para ativar
           </span>
         </div>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', pointerEvents: 'auto', position: 'relative' }}>
+        <div className="dictionary-wrapper">
           <div 
             onClick={() => setShowDictionary(!showDictionary)}
             style={{
@@ -255,23 +239,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{
-        position: 'absolute',
-        bottom: 40,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 1000,
-        background: '#111111',
-        padding: '24px 32px',
-        borderRadius: '24px 24px 24px 8px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 12,
-        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-        border: '1px solid #222',
-        pointerEvents: 'auto'
-      }}>
+      <div className="bottom-bar">
         <label style={{ 
           fontSize: 14, 
           fontWeight: 800, 
@@ -281,7 +249,7 @@ export default function App() {
         }}>
           Raio: {Math.round(lensRadius)}m
         </label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
           <input 
             type="range" 
             min="200" max="5000" step="50"
