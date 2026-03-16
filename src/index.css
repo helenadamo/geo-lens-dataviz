@@ -120,6 +120,33 @@ input[type="range"] {
   gap: 24px;
   font-family: 'Metrophobic', sans-serif;
   transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.title-group {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.main-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.sub-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #888888;
+  margin: 0;
+  margin-top: 4px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .category-list {
@@ -131,16 +158,25 @@ input[type="range"] {
 
 @media (max-width: 768px) {
   .top-bar {
-    top: 12px;
-    left: 12px;
-    right: 12px;
-    padding: 12px 20px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    padding: 8px 12px;
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
-    border-radius: 24px 24px 24px 8px;
+    gap: 8px;
+    border-radius: 16px 16px 16px 6px;
   }
   
+  .main-title {
+    font-size: 16px !important;
+  }
+
+  .sub-title {
+    font-size: 11px !important;
+    margin-top: 1px !important;
+  }
+
   .top-bar-separator {
     display: none !important;
   }
@@ -148,13 +184,9 @@ input[type="range"] {
   .category-list {
     width: 100%;
     overflow-x: auto;
-    padding: 4px 0 12px 0;
+    padding: 2px 0 8px 0;
     -webkit-overflow-scrolling: touch;
     mask-image: linear-gradient(to right, black 90%, transparent 100%);
-  }
-
-  .top-bar h1 {
-    font-size: 18px !important;
   }
 
   .dictionary-wrapper {
@@ -163,12 +195,28 @@ input[type="range"] {
   }
 
   .category-chip {
-    height: 38px !important;
-    padding: 0 14px 0 10px !important;
+    height: 32px !important;
+    padding: 0 10px 0 8px !important;
   }
 
   .category-chip span {
+    font-size: 11px !important;
+  }
+
+  .category-chip svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .dictionary-btn {
+    padding: 6px 12px !important;
     font-size: 12px !important;
+    gap: 6px !important;
+  }
+
+  .dictionary-btn svg {
+    width: 16px !important;
+    height: 16px !important;
   }
 
   .mobile-hide {
@@ -181,6 +229,21 @@ input[type="range"] {
   display: flex;
   pointer-events: auto;
   position: relative;
+}
+
+.dictionary-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 24px;
+  background: #1a1a1a;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 800;
+  font-size: 14px;
+  border: 1px solid #333;
 }
 
 .bottom-bar {
@@ -206,13 +269,19 @@ input[type="range"] {
 
 @media (max-width: 768px) {
   .bottom-bar {
-    bottom: 20px;
-    padding: 16px 20px;
-    min-width: 260px;
-    width: 90%;
+    bottom: 12px;
+    padding: 12px 16px;
+    min-width: 200px;
+    width: 80%;
+    gap: 8px;
   }
   
+  .bottom-bar label {
+    font-size: 12px !important;
+  }
+
   .bottom-bar input[type="range"] {
     width: 100% !important;
+    height: 4px;
   }
 }

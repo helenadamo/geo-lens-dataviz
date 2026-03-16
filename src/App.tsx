@@ -95,26 +95,11 @@ export default function App() {
       />
 
       <div className="top-bar">
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0 }}>
-          <h1 style={{ 
-            fontSize: 24, 
-            fontWeight: 800, 
-            color: '#ffffff', 
-            margin: 0, 
-            letterSpacing: '-0.02em',
-            lineHeight: 1
-          }}>
+        <div className="title-group">
+          <h1 className="main-title">
             Acidentes de Trânsito
           </h1>
-          <p style={{ 
-            fontSize: 14, 
-            fontWeight: 600, 
-            color: '#888888', 
-            margin: 0,
-            marginTop: 4,
-            letterSpacing: '-0.01em',
-            whiteSpace: 'nowrap'
-          }}>
+          <p className="sub-title">
             Porto Alegre
           </p>
         </div>
@@ -177,20 +162,10 @@ export default function App() {
 
         <div className="dictionary-wrapper">
           <div 
+            className="dictionary-btn"
             onClick={() => setShowDictionary(!showDictionary)}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '12px 20px',
-              borderRadius: '24px',
-              background: showDictionary ? '#333' : '#1a1a1a',
-              color: '#fff',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-              fontWeight: 800,
-              fontSize: 14,
-              border: '1px solid #333'
+              background: showDictionary ? '#333' : '#1a1a1a'
             }}
           >
             <BookOpen size={20} strokeWidth={1.5} />
